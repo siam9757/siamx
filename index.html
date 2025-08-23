@@ -39,6 +39,14 @@ header{flex-direction:column;align-items:flex-start;}
 h1{font-size:18px}
 p.lead{font-size:12px}
 }
+/* Modal styles */
+#modalOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:999;animation:fadeIn 0.3s;}
+#modalContent{background:var(--card);padding:20px;border-radius:12px;width:90%;max-width:500px;max-height:80%;overflow-y:auto;transform:scale(0.8);opacity:0;transition:all 0.3s ease;}
+#modalContent.show{transform:scale(1);opacity:1;}
+#modalClose{position:absolute;top:10px;right:15px;cursor:pointer;font-weight:800;color:var(--accent);}
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+.modalList{margin-top:12px;padding-left:18px;color:var(--muted)}
+.modalList div{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -67,7 +75,6 @@ p.lead{font-size:12px}
 <div class="stat">Status: <span id="status">Ready</span></div>
 </div>
 </div>
-
 <div class="analysis" id="analysisText" aria-live="polite">
 <strong>Analysis summary will appear here.</strong>
 </div>
@@ -111,6 +118,15 @@ p.lead{font-size:12px}
 </div>
 </div>
 
+<!-- Modal -->
+<div id="modalOverlay">
+<div id="modalContent">
+<span id="modalClose">✕</span>
+<h3 style="margin-bottom:12px">Detailed Signal Explanation</h3>
+<div class="modalList" id="modalList"></div>
+</div>
+</div>
+
 <script>
 const fileInput=document.getElementById('fileInput');
 const drop=document.getElementById('drop');
@@ -124,6 +140,10 @@ const confidenceEl=document.getElementById('confidence');
 const detailList=document.getElementById('detailList');
 const analysisText=document.getElementById('analysisText');
 const explainBtn=document.getElementById('explainBtn');
+const modalOverlay=document.getElementById('modalOverlay');
+const modalContent=document.getElementById('modalContent');
+const modalClose=document.getElementById('modalClose');
+const modalList=document.getElementById('modalList');
 
 let loadedImage=null;
 let lastResult=null;
@@ -131,7 +151,6 @@ let lastResult=null;
 function setStatus(s){statusEl.textContent=s;}
 function setImgInfo(t){imgInfo.textContent=t;}
 
-// Draw image
 function drawImageToCanvas(img){
 const W=1000,H=Math.round(W*(img.height/img.width)*0.9)||450;
 canvas.width=W;canvas.height=H;
@@ -140,7 +159,6 @@ ctx.drawImage(img,0,0,W,H);
 setImgInfo(`${img.width}×${img.height} → canvas ${W}×${H}`);
 }
 
-// Handle file
 function handleFile(file){
 if(!file)return;
 if(!file.type.startsWith('image/')){alert('Please upload an image file');return;}
@@ -157,7 +175,6 @@ drop.addEventListener('dragover',e=>{e.preventDefault(); drop.classList.add('dra
 drop.addEventListener('dragleave',e=>{drop.classList.remove('drag');});
 drop.addEventListener('drop',e=>{e.preventDefault(); drop.classList.remove('drag'); handleFile(e.dataTransfer.files[0]);});
 
-// Analyze function (simulate professional analysis)
 function analyzeCanvas(){
 if(!loadedImage){setStatus('Please upload image first'); return null;}
 setStatus('Analyzing...');
@@ -209,10 +226,35 @@ const res=analyzeCanvas();
 renderResult(res);
 });
 
-// Explain button
+// Modal open
 explainBtn.addEventListener('click',()=>{
 if(!lastResult){alert('No analysis yet — upload image and analyze.'); return;}
-alert('Detailed Explanation:\n\n'+lastResult.explanation.join('\n')+'\n\nSignal: '+lastResult.signal+'\nConfidence: '+lastResult.confidence+'%');
+modalOverlay.style.display='flex';
+setTimeout(()=>modalContent.classList.add('show'),50);
+modalList.innerHTML=`
+<div>Signal: <strong>${lastResult.signal}</strong></div>
+<div>Confidence: <strong>${lastResult.confidence}%</strong></div>
+<div>Trend: <strong>${lastResult.trend}</strong></div>
+<div>Volatility: <strong>${lastResult.volatility}</strong></div>
+<div>Slope: <strong>${lastResult.slopePixels}</strong></div>
+<div>RSI: <strong>${lastResult.indicators.RSI}</strong></div>
+<div>MACD: <strong>${lastResult.indicators.MACD}</strong></div>
+<div>Stochastic: <strong>${lastResult.indicators.Stochastic}</strong></div>
+<div>EMA: <strong>${lastResult.indicators.EMA}</strong></div>
+<div>Bollinger Bands: <strong>${lastResult.indicators.BollingerBands}</strong></div>
+<div>Candlestick: <strong>${lastResult.indicators.Candlestick}</strong></div>
+<div>Direction: <strong>${lastResult.direction}</strong></div>
+`;
+
+});
+
+// Modal close
+modalClose.addEventListener('click',()=>{
+modalContent.classList.remove('show');
+setTimeout(()=>modalOverlay.style.display='none',300);
+});
+modalOverlay.addEventListener('click',e=>{
+if(e.target===modalOverlay){modalContent.classList.remove('show'); setTimeout(()=>modalOverlay.style.display='none',300);}
 });
 
 // Initial canvas hint
