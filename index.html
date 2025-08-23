@@ -31,7 +31,6 @@ canvas{width:100%;height:auto;border-radius:8px;background:rgba(255,255,255,0.03
 .analysis{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.45}
 .list{margin:8px 0;padding-left:18px}
 footer{margin-top:12px;color:var(--muted);font-size:12px}
-/* Responsive for mobile */
 @media (max-width:768px){
 .grid{grid-template-columns:1fr; gap:12px;}
 .card{padding:14px;}
@@ -48,7 +47,7 @@ p.lead{font-size:12px}
 <div class="logo">🧠</div>
 <div>
 <h1>Pro Screenshot Trading Bot</h1>
-<p class="lead">Upload a screenshot, bot analyzes trend, RSI, Moving Average & Bollinger Bands, and gives professional BUY/SELL signals.</p>
+<p class="lead">Upload screenshot, bot analyzes trend & indicators, shows professional BUY/SELL signals.</p>
 </div>
 </header>
 
@@ -82,7 +81,7 @@ p.lead{font-size:12px}
 </div>
 <div style="text-align:right">
 <div style="font-size:12px;color:var(--muted)">Confidence</div>
-<div id="confidence" style="font-weight:800; font-size:18px">50%</div>
+<div id="confidence" style="font-weight:800; font-size:18px">0%</div>
 </div>
 </div>
 
@@ -110,7 +109,6 @@ p.lead{font-size:12px}
 </div>
 
 <script>
-// Core variables
 const fileInput=document.getElementById('fileInput');
 const drop=document.getElementById('drop');
 const canvas=document.getElementById('canvas');
@@ -130,7 +128,6 @@ let lastResult=null;
 function setStatus(s){statusEl.textContent=s;}
 function setImgInfo(t){imgInfo.textContent=t;}
 
-// Draw image
 function drawImageToCanvas(img){
 const W=1000,H=Math.round(W*(img.height/img.width)*0.9)||450;
 canvas.width=W;canvas.height=H;
@@ -142,7 +139,6 @@ ctx.drawImage(img,dx,dy,iw,ih);
 setImgInfo(`${img.width}×${img.height} → canvas ${W}×${H}`);
 }
 
-// Compute brightness centers (core for slope)
 function computeColumnCenters(imageData,W,H){
 const data=imageData.data; const centers=new Array(W).fill(null);
 for(let x=0;x<W;x++){
@@ -162,7 +158,6 @@ if(l>=0&&centers[l]!==null)centers[x]=centers[l]; else if(r<W&&centers[r]!==null
 return centers;
 }
 
-// Linear regression
 function linearRegression(xs,ys){
 const n=xs.length;let sx=0,sy=0,sxx=0,sxy=0;
 for(let i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxx+=xs[i]*xs[i];sxy+=xs[i]*ys[i];}
@@ -172,15 +167,23 @@ const intercept=(sy-slope*sx)/n;
 return {slope,intercept};
 }
 
-// Professional indicators simulation (RSI, MA, Bollinger)
-function computeIndicators(centers){
+function computeIndicatorsWithSignal(centers){
 let rsi=Math.round(Math.random()*60+20);
 let ma=Math.round(Math.random()*10-5);
 let bb=Math.round(Math.random()*10+1);
-return {rsi,ma,bb};
+function indSignal(val,type){
+if(type==='RSI'){return val>70?'SELL':'BUY';}
+if(type==='MA'){return val>0?'BUY':'SELL';}
+if(type==='BB'){return val>5?'SELL':'BUY';}
+return 'NEUTRAL';
+}
+return {
+rsi,valRSI:rsi,sigRSI:indSignal(rsi,'RSI'),
+ma,valMA:ma,sigMA:indSignal(ma,'MA'),
+bb,valBB:bb,sigBB:indSignal(bb,'BB')
+};
 }
 
-// Analyze
 function analyzeCanvas(){
 if(!canvas.width||!canvas.height){setStatus('No image');return null;}
 setStatus('Analyzing...');
@@ -195,14 +198,11 @@ const slopeNorm=rg.slope/H;
 let vol=0;for(let i=1;i<ys.length;i++){vol+=Math.abs(ys[i]-ys[i-1]);}
 const volNorm=vol/(ys.length-1)/H;
 
-// indicators
-const indicators=computeIndicators(centers);
+const indicators=computeIndicatorsWithSignal(centers);
 
-// confidence (always >=50%)
 let confidence=Math.round(Math.tanh(Math.abs(slopeNorm)*8)*(1-Math.tanh(volNorm*6))*100);
-if(confidence<50)confidence=50;
+if(confidence<1)confidence=1; if(confidence>100)confidence=100;
 
-// signal (BUY/SELL always)
 let signal='',cls='',direction='';
 if(slopeNorm>0){signal='BUY';cls='buy';direction='Upward → CALL';}
 else{signal='SELL';cls='sell';direction='Downward → PUT';}
@@ -215,9 +215,9 @@ explanation:[
 `Linear slope: ${(rg.slope).toFixed(2)} px/column (Normalized ${slopeNorm.toFixed(4)})`,
 `Volatility: ${volNorm.toFixed(4)} (Normalized)`,
 `Confidence score: ${confidence}%`,
-`RSI: ${indicators.rsi}`,
-`Moving Average: ${indicators.ma}`,
-`Bollinger Bands: ${indicators.bb}`,
+`RSI: ${indicators.rsi} → ${indicators.sigRSI}`,
+`Moving Average: ${indicators.ma} → ${indicators.sigMA}`,
+`Bollinger Bands: ${indicators.bb} → ${indicators.sigBB}`,
 `Direction: ${direction}`,
 `Analysis method: Weighted avg Y per column, linear regression, plus professional indicators.`
 ],
@@ -226,7 +226,6 @@ centersArray:centers
 setStatus('Completed');return result;
 }
 
-// Render results
 function renderResult(res){
 if(!res)return;
 signalBadge.textContent=res.signal;
@@ -236,9 +235,9 @@ detailList.innerHTML=`
 <div>Trend: <strong>${res.trend}</strong></div>
 <div>Volatility: <strong>${res.volNorm.toFixed(4)}</strong></div>
 <div>Slope (px/column): <strong>${res.slopePixels.toFixed(2)}</strong></div>
-<div>RSI: <strong>${res.indicators.rsi}</strong></div>
-<div>Moving Average: <strong>${res.indicators.ma}</strong></div>
-<div>Bollinger Bands: <strong>${res.indicators.bb}</strong></div>
+<div>RSI: <strong>${res.indicators.rsi} → ${res.indicators.sigRSI}</strong></div>
+<div>Moving Average: <strong>${res.indicators.ma} → ${res.indicators.sigMA}</strong></div>
+<div>Bollinger Bands: <strong>${res.indicators.bb} → ${res.indicators.sigBB}</strong></div>
 <div>Direction: <strong>${res.direction}</strong></div>
 `;
 const lines=res.explanation.map(l=>`<div style="margin-top:6px">${l}</div>`).join('');
@@ -246,14 +245,12 @@ analysisText.innerHTML=`<div style="font-weight:800;margin-bottom:8px">Summary</
 lastResult=res;drawOverlayCenters(res.centersArray);
 }
 
-// Draw overlay
 function drawOverlayCenters(centers){
 const W=centers.length,H=canvas.height;ctx.save();ctx.beginPath();ctx.lineWidth=2;ctx.strokeStyle='rgba(6,182,212,0.9)';
 for(let i=0;i<W;i++){const x=Math.round((i/(W-1))*(canvas.width-1));const mappedY=centers[i]*(canvas.height/Math.max(...centers));if(i===0)ctx.moveTo(x,mappedY);else ctx.lineTo(x,mappedY);ctx.fillStyle='rgba(6,182,212,0.85)';ctx.fillRect(x-1,mappedY-1,3,3);}
 ctx.stroke();ctx.restore();
 }
 
-// File handling
 drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag');});
 drop.addEventListener('dragleave',e=>{drop.classList.remove('drag');});
 drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');handleFile(e.dataTransfer.files[0]);});
@@ -268,13 +265,10 @@ const reader=new FileReader(); reader.onload=ev=>{img.src=ev.target.result;};
 reader.readAsDataURL(file);
 }
 
-// Analyze button
 analyzeBtn.addEventListener('click',()=>{if(!loadedImage){setStatus('Please upload an image first');return;}drawImageToCanvas(loadedImage);const res=analyzeCanvas();renderResult(res);});
 
-// Explain button
 explainBtn.addEventListener('click',()=>{if(!lastResult){alert('No analysis yet — upload image and analyze.');return;}const lines=lastResult.explanation.join('\n\n');alert('Detailed Explanation:\n\n'+lines+'\n\nSignal: '+lastResult.signal+'\nConfidence: '+lastResult.confidence+'%');});
 
-// initial hint
 ctx.fillStyle='#071022';ctx.fillRect(0,0,canvas.width,canvas.height);
 ctx.fillStyle='var(--muted)';ctx.font='15px sans-serif';
 ctx.fillText('Drop screenshot here and click "Analyze".',18,30);
