@@ -1,269 +1,346 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pro Screenshot Trading Bot</title>
-<style>
-:root{
---bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
---success:#10b981; --danger:#ef4444; --neutral:#f59e0b;
-}
-*{box-sizing:border-box;font-family:"Segoe UI", Roboto, "Noto Sans", sans-serif;color:#e6eef6}
-body{margin:0;background:linear-gradient(180deg,#071023 0%,#071a2b 60%);min-height:100vh;padding:20px;display:flex;justify-content:center;align-items:flex-start;}
-.wrap{width:100%;max-width:1100px;}
-header{display:flex;gap:18px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
-.logo{width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 30px rgba(0,0,0,0.6);transform:rotate(-10deg);animation:float 3s ease-in-out infinite;}
-@keyframes float{0%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(-6px) rotate(-9deg)}100%{transform:translateY(0) rotate(-10deg)}}
-h1{font-size:20px;margin:0;flex:1 1 100%}
-p.lead{margin:0;color:var(--muted);font-size:13px}
-.grid{display:grid;grid-template-columns:1fr 420px;gap:18px;align-items:start;}
-.card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;padding:18px;box-shadow:0 6px 24px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);}
-.uploader{border:2px dashed rgba(255,255,255,0.04);padding:22px;border-radius:10px;text-align:center;transition:all .25s ease;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);}
-.uploader.drag{border-color:rgba(6,182,212,0.6);box-shadow:0 0 0 6px rgba(6,182,212,0.04) inset}
-.btn{display:inline-block;padding:10px 14px;border-radius:8px;background:linear-gradient(90deg,var(--accent),#7c3aed);color:#042027;font-weight:700;cursor:pointer;box-shadow:0 8px 30px rgba(7,12,28,0.6);}
-input[type=file]{display:none}
-canvas{width:100%;height:auto;border-radius:8px;background:rgba(255,255,255,0.03);display:block;margin:8px 0;border:1px solid rgba(255,255,255,0.02)}
-.stat{padding:10px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.02)}
-.result-badge{padding:12px;border-radius:10px;font-weight:800;display:inline-block;min-width:120px;text-align:center}
-.buy{background:linear-gradient(90deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04)); color:var(--success); border:1px solid rgba(16,185,129,0.16)}
-.sell{background:linear-gradient(90deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02)); color:var(--danger); border:1px solid rgba(239,68,68,0.12)}
-.analysis{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.45}
-.list{margin:8px 0;padding-left:18px}
-footer{margin-top:12px;color:var(--muted);font-size:12px}
-@media (max-width:768px){
-.grid{grid-template-columns:1fr; gap:12px;}
-.card{padding:14px;}
-canvas{height:auto;}
-header{flex-direction:column;align-items:flex-start;}
-h1{font-size:18px}
-p.lead{font-size:12px}
-}
-/* Modal styles */
-#modalOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:999;animation:fadeIn 0.3s;}
-#modalContent{background:var(--card);padding:20px;border-radius:12px;width:90%;max-width:500px;max-height:80%;overflow-y:auto;transform:scale(0.8);opacity:0;transition:all 0.3s ease;}
-#modalContent.show{transform:scale(1);opacity:1;}
-#modalClose{position:absolute;top:10px;right:15px;cursor:pointer;font-weight:800;color:var(--accent);}
-@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
-.modalList{margin-top:12px;padding-left:18px;color:var(--muted)}
-.modalList div{margin-bottom:6px}
-</style>
-</head>
-<body>
-<div class="wrap">
-<header>
-<div class="logo">🧠</div>
-<div>
-<h1>Pro Screenshot Trading Bot</h1>
-<p class="lead">Upload screenshot, bot analyzes trend, candlestick patterns & indicators, shows professional BUY/SELL signals.</p>
-</div>
-</header>
+// ==UserScript==
+// @name         SL TECH BD V1.9.3 - Profit Format Fix + Slider Input Fix + Capital Input Removed + Deposit Btn Popup
+// @version      1.9.3
+// @description  Demo balance fixed 10k, Live balance shows Demo real amount from specific element, tickmark move kore Live e | SL TECH BD
+// @author       SL
+// @match        *://market-qx.trade/*
+// @grant        none
+// ==/UserScript==
 
-<div class="grid">
-<div class="card">
-<div id="drop" class="uploader">
-<div style="font-size:15px;font-weight:700">Upload / Drop Screenshot</div>
-<div style="margin-top:8px;color:var(--muted)">PNG or JPG only.</div>
-<div style="margin-top:12px">
-<label class="btn" for="fileInput">Choose File</label>
-<input id="fileInput" type="file" accept="image/*" />
-<button id="analyzeBtn" class="btn" style="background:transparent;border:1px solid rgba(255,255,255,0.06); color:var(--accent); margin-left:8px">Analyze</button>
-</div>
-<canvas id="canvas" width="1000" height="450" style="margin-top:12px"></canvas>
-<div style="display:flex; gap:10px; margin-top:6px; align-items:center; flex-wrap:wrap;">
-<div class="stat">Image Size: <span id="imgInfo">—</span></div>
-<div class="stat">Status: <span id="status">Ready</span></div>
-</div>
-</div>
-<div class="analysis" id="analysisText" aria-live="polite">
-<strong>Analysis summary will appear here.</strong>
-</div>
-</div>
+(function () {
+  'use strict';
 
-<div class="card" style="position:sticky; top:28px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-<div>
-<div style="font-size:13px;color:var(--muted)">Signal</div>
-<div id="signalBadge" class="result-badge buy" style="margin-top:8px">BUY</div>
-</div>
-<div style="text-align:right">
-<div style="font-size:12px;color:var(--muted)">Confidence</div>
-<div id="confidence" style="font-weight:800; font-size:18px">0%</div>
-</div>
-</div>
+  if (location.href === "https://market-qx.trade/en/trade") {
+    location.replace("https://market-qx.trade/en/demo-trade");
+    return;
+  }
 
-<div style="margin-top:12px;">
-<div style="font-weight:800">Detailed Analysis</div>
-<div class="list" id="detailList">
-<div>Trend: —</div>
-<div>Volatility: —</div>
-<div>Slope (px/column): —</div>
-<div>RSI: —</div>
-<div>MACD: —</div>
-<div>Stochastic: —</div>
-<div>EMA: —</div>
-<div>Bollinger Bands: —</div>
-<div>Candlestick: —</div>
-<div>Direction: —</div>
-</div>
-<div style="margin-top:10px">
-<button id="explainBtn" class="btn" style="background:transparent;border:1px solid rgba(255,255,255,0.06); color:var(--accent)">View Explanation</button>
-</div>
-</div>
+  if (location.href === "https://market-qx.trade/en/demo-trade") {
+    const fakeUrl = "https://market-qx.trade/en/trade";
+    const fakeTitle = "Live trading | Quotex";
 
-<footer>
-<div style="margin-top:12px">Note: Auto-analysis; verify before trading.</div>
-</footer>
-</div>
-</div>
-</div>
+    document.title = fakeTitle;
 
-<!-- Modal -->
-<div id="modalOverlay">
-<div id="modalContent">
-<span id="modalClose">✕</span>
-<h3 style="margin-bottom:12px">Detailed Signal Explanation</h3>
-<div class="modalList" id="modalList"></div>
-</div>
-</div>
+    new MutationObserver(() => {
+      if (document.title !== fakeTitle) document.title = fakeTitle;
+    }).observe(document.querySelector('title'), { childList: true });
 
-<script>
-const fileInput=document.getElementById('fileInput');
-const drop=document.getElementById('drop');
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d',{willReadFrequently:true});
-const imgInfo=document.getElementById('imgInfo');
-const statusEl=document.getElementById('status');
-const analyzeBtn=document.getElementById('analyzeBtn');
-const signalBadge=document.getElementById('signalBadge');
-const confidenceEl=document.getElementById('confidence');
-const detailList=document.getElementById('detailList');
-const analysisText=document.getElementById('analysisText');
-const explainBtn=document.getElementById('explainBtn');
-const modalOverlay=document.getElementById('modalOverlay');
-const modalContent=document.getElementById('modalContent');
-const modalClose=document.getElementById('modalClose');
-const modalList=document.getElementById('modalList');
+    history.replaceState(null, "", fakeUrl);
+  }
 
-let loadedImage=null;
-let lastResult=null;
+  const now = Date.now();
+  const pw = (() => {
+    let r = '';
+    for (let i = 0; i < "6768796c6f".length; i += 2)
+      r += String.fromCharCode(parseInt("6768796c6f".slice(i, i + 2), 16) - 3);
+    return r;
+  })();
+  const pwExpiry = (() => {
+    let r = '';
+    for (let i = 0; i < "343a383a3633373b333a333333".length; i += 2)
+      r += String.fromCharCode(parseInt("343a383a3633373b333a333333".slice(i, i + 2), 16) - 3);
+    return parseInt(r);
+  })();
+  const pwKey = atob("c2x0ZWNoX3ZlcmlmaWVkX2luZm8=");
+  const balKey = atob("aW5pdGlhbEJhbGFuY2VJbmZv");
+  const lbKey = atob("c2x0ZWNoX2xlYWRlcmJvYXJkX2RhdGE=");
 
-function setStatus(s){statusEl.textContent=s;}
-function setImgInfo(t){imgInfo.textContent=t;}
+  const selectors = {
+    positionHeaderMoney: ".position__header-money.--green, .position__header-money.--red",
+    usermenuBalance: ".---react-features-Usermenu-styles-module__infoBalance--pVBHU",
+    usermenuIconUse: ".---react-features-Usermenu-styles-module__infoLevels--ePf8T svg use",
+    usermenuName: ".---react-features-Usermenu-styles-module__infoName--SfrTV.---react-features-Usermenu-styles-module__demo--TmWTp",
+    levelName: ".---react-features-Usermenu-Dropdown-styles-module__levelName--wFviC",
+    levelProfit: ".---react-features-Usermenu-Dropdown-styles-module__levelProfit--UkDJi",
+    levelIcon: ".---react-features-Usermenu-Dropdown-styles-module__levelIcon--lmj_k svg use",
+    usermenuListItems: "li",
+    liveBalanceText: ".---react-features-Usermenu-styles-module__infoText--58LeE .---react-features-Usermenu-styles-module__infoBalance--pVBHU"
+  };
+  const activeClass = '---react-features-Usermenu-Dropdown-styles-module__active--P5n2A';
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const numFromText = s => s ? parseFloat(s.replace(/[^0-9.]/g, "")) : NaN;
 
-function drawImageToCanvas(img){
-const W=1000,H=Math.round(W*(img.height/img.width)*0.9)||450;
-canvas.width=W;canvas.height=H;
-ctx.fillStyle='#071022';ctx.fillRect(0,0,canvas.width,canvas.height);
-ctx.drawImage(img,0,0,W,H);
-setImgInfo(`${img.width}×${img.height} → canvas ${W}×${H}`);
-}
+  function formatWithThousands(num) {
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
 
-function handleFile(file){
-if(!file)return;
-if(!file.type.startsWith('image/')){alert('Please upload an image file');return;}
-const img=new Image();
-img.onload=()=>{loadedImage=img;drawImageToCanvas(img); setStatus('Image loaded');};
-img.onerror=()=>{alert('Failed to load image');};
-const reader=new FileReader();
-reader.onload=ev=>{img.src=ev.target.result;};
-reader.readAsDataURL(file);
-}
+  const isAuthorized = () => {
+    const saved = localStorage.getItem(pwKey);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.verified && data.expires === pwExpiry && now < pwExpiry) return true;
+        localStorage.removeItem(pwKey);
+      } catch { localStorage.removeItem(pwKey); }
+    }
+    const input = prompt("SL TECH BD password:");
+    if (input === pw && now < pwExpiry) {
+      localStorage.setItem(pwKey, JSON.stringify({ verified: true, timestamp: now, expires: pwExpiry }));
+      return true;
+    }
+    alert("Access denied or expired.");
+    document.body.innerHTML = "";
+    return false;
+  };
+  if (!isAuthorized()) return;
 
-fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
-drop.addEventListener('dragover',e=>{e.preventDefault(); drop.classList.add('drag');});
-drop.addEventListener('dragleave',e=>{drop.classList.remove('drag');});
-drop.addEventListener('drop',e=>{e.preventDefault(); drop.classList.remove('drag'); handleFile(e.dataTransfer.files[0]);});
+  let initialBal = 0;
+  const savedBal = localStorage.getItem(balKey);
+  if (savedBal) {
+    const d = JSON.parse(savedBal);
+    if (now - d.timestamp < 864e5) initialBal = parseFloat(d.balance);
+  }
+  function formatAmount(num) { return "$" + num.toFixed(2); }
 
-function analyzeCanvas(){
-if(!loadedImage){setStatus('Please upload image first'); return null;}
-setStatus('Analyzing...');
-const result={
-signal: Math.random()>0.5?'BUY':'SELL',
-confidence: Math.floor(Math.random()*100)+1,
-trend:'Bullish/ Bearish',
-volatility:(Math.random()*0.1).toFixed(4),
-slopePixels:(Math.random()*2-1).toFixed(2),
-indicators:{
-RSI:Math.floor(Math.random()*100),
-MACD:(Math.random()*2-1).toFixed(2),
-Stochastic:Math.floor(Math.random()*100),
-EMA:(Math.random()*2-1).toFixed(2),
-BollingerBands:(Math.random()*3+1).toFixed(2),
-Candlestick:['Hammer','Shooting Star','Doji','Engulfing'][Math.floor(Math.random()*4)]
-},
-direction:Math.random()>0.5?'Upward → CALL':'Downward → PUT',
-explanation:['Professional analysis with candlestick & indicators.']
-};
-lastResult=result;
-return result;
-}
+  function spoofUI() {
+    const listItems = $$(selectors.usermenuListItems);
+    if (!listItems.length) return;
+    const demoLi = listItems.find(li => li.innerText.includes("Demo Account"));
+    const liveLi = listItems.find(li => li.innerText.includes("Live"));
+    if (!demoLi || !liveLi) return;
+    const demoBalanceElem = demoLi.querySelector("b");
+    const liveBalanceElem = liveLi.querySelector("b");
+    if (!demoBalanceElem || !liveBalanceElem) return;
+    const fixedDemoAmountStr = formatAmount(10000);
+    const liveBalanceFromUI = $(selectors.liveBalanceText);
+    let liveBalanceValue = 0;
+    if (liveBalanceFromUI) {
+      liveBalanceValue = numFromText(liveBalanceFromUI.textContent);
+      if (isNaN(liveBalanceValue)) liveBalanceValue = 0;
+    }
+    const liveAmountStr = formatAmount(liveBalanceValue);
+    const demoHasActiveClass = demoLi.classList.contains(activeClass);
+    const liveHasActiveClass = liveLi.classList.contains(activeClass);
+    if (demoBalanceElem.textContent === fixedDemoAmountStr && liveBalanceElem.textContent === liveAmountStr && !demoHasActiveClass && liveHasActiveClass) return;
+    demoBalanceElem.textContent = fixedDemoAmountStr;
+    liveBalanceElem.textContent = liveAmountStr;
+    if (demoHasActiveClass) demoLi.classList.remove(activeClass);
+    if (!liveHasActiveClass) liveLi.classList.add(activeClass);
+  }
 
-function renderResult(res){
-if(!res)return;
-signalBadge.textContent=res.signal;
-signalBadge.className='result-badge '+(res.signal==='BUY'?'buy':'sell');
-confidenceEl.textContent=res.confidence+'%';
-detailList.innerHTML=`
-<div>Trend: <strong>${res.trend}</strong></div>
-<div>Volatility: <strong>${res.volatility}</strong></div>
-<div>Slope (px/column): <strong>${res.slopePixels}</strong></div>
-<div>RSI: <strong>${res.indicators.RSI}</strong></div>
-<div>MACD: <strong>${res.indicators.MACD}</strong></div>
-<div>Stochastic: <strong>${res.indicators.Stochastic}</strong></div>
-<div>EMA: <strong>${res.indicators.EMA}</strong></div>
-<div>Bollinger Bands: <strong>${res.indicators.BollingerBands}</strong></div>
-<div>Candlestick: <strong>${res.indicators.Candlestick}</strong></div>
-<div>Direction: <strong>${res.direction}</strong></div>
-`;
-analysisText.innerHTML=`<div style="font-weight:800;margin-bottom:8px">Summary</div><div>${res.explanation[0]}</div>`;
-setStatus('Completed');
-}
+  let lastProfitDiff = null;
+  let currentExpandPercent = parseInt(localStorage.getItem('expandPercent')) || 0;
 
-// Analyze button
-analyzeBtn.addEventListener('click',()=>{
-const res=analyzeCanvas();
-renderResult(res);
-});
+  function updatePositionExpandOnProfitChange() {
+    const bal = numFromText($(selectors.usermenuBalance)?.textContent);
+    if (isNaN(bal)) return;
+    const diff = bal - initialBal;
+    if (diff !== lastProfitDiff) {
+      currentExpandPercent = Math.floor(Math.random() * 91) + 10;
+      lastProfitDiff = diff;
+      localStorage.setItem('expandPercent', currentExpandPercent);
 
-// Modal open
-explainBtn.addEventListener('click',()=>{
-if(!lastResult){alert('No analysis yet — upload image and analyze.'); return;}
-modalOverlay.style.display='flex';
-setTimeout(()=>modalContent.classList.add('show'),50);
-modalList.innerHTML=`
-<div>Signal: <strong>${lastResult.signal}</strong></div>
-<div>Confidence: <strong>${lastResult.confidence}%</strong></div>
-<div>Trend: <strong>${lastResult.trend}</strong></div>
-<div>Volatility: <strong>${lastResult.volatility}</strong></div>
-<div>Slope: <strong>${lastResult.slopePixels}</strong></div>
-<div>RSI: <strong>${lastResult.indicators.RSI}</strong></div>
-<div>MACD: <strong>${lastResult.indicators.MACD}</strong></div>
-<div>Stochastic: <strong>${lastResult.indicators.Stochastic}</strong></div>
-<div>EMA: <strong>${lastResult.indicators.EMA}</strong></div>
-<div>Bollinger Bands: <strong>${lastResult.indicators.BollingerBands}</strong></div>
-<div>Candlestick: <strong>${lastResult.indicators.Candlestick}</strong></div>
-<div>Direction: <strong>${lastResult.direction}</strong></div>
-`;
+      const expandSpan = document.querySelector(".position__loading .position__expand");
+      if (expandSpan) expandSpan.style.width = currentExpandPercent + "%";
 
-});
+      const slider = document.getElementById('capitalPercentSlider');
+      if (slider) {
+        slider.value = currentExpandPercent;
+        updatePercentDisplay(currentExpandPercent);
+      }
+    } else {
+      const expandSpan = document.querySelector(".position__loading .position__expand");
+      if (expandSpan) expandSpan.style.width = currentExpandPercent + "%";
 
-// Modal close
-modalClose.addEventListener('click',()=>{
-modalContent.classList.remove('show');
-setTimeout(()=>modalOverlay.style.display='none',300);
-});
-modalOverlay.addEventListener('click',e=>{
-if(e.target===modalOverlay){modalContent.classList.remove('show'); setTimeout(()=>modalOverlay.style.display='none',300);}
-});
+      const slider = document.getElementById('capitalPercentSlider');
+      if (slider) {
+        updatePercentDisplay(currentExpandPercent);
+      }
+    }
+  }
 
-// Initial canvas hint
-ctx.fillStyle='#071022';
-ctx.fillRect(0,0,canvas.width,canvas.height);
-ctx.fillStyle='var(--muted)';
-ctx.font='15px sans-serif';
-ctx.fillText('Drop screenshot here or select file and click "Analyze".',18,30);
-setStatus('Ready');
-</script>
-</body>
-</html>
+  function updatePercentDisplay(value) {
+    let display = document.getElementById("sliderPercentDisplay");
+    if (!display) return;
+    display.textContent = value + "%";
+  }
+
+  let updateUI = () => {
+    const bal = numFromText($(selectors.usermenuBalance)?.textContent);
+    const profitEl = $(selectors.positionHeaderMoney);
+    const levelIconUse = $(selectors.usermenuIconUse);
+    const levelIconDropdown = $(selectors.levelIcon);
+    if (!isNaN(bal) && profitEl) {
+      const diff = bal - initialBal;
+      const val = formatWithThousands(Math.abs(diff));
+      profitEl.innerText = diff === 0 ? "$0.00" : (diff > 0 ? `$${val}` : `-$${val}`);
+      profitEl.style.color = diff < 0 ? "#ff3e3e" : "#0faf59";
+    }
+    let levelType = 'standart';
+    if (bal > 9999.99) levelType = 'vip';
+    else if (bal > 4999.99) levelType = 'pro';
+    const iconHref = `/profile/images/spritemap.svg#icon-profile-level-${levelType}`;
+    if (levelIconUse) levelIconUse.setAttribute("xlink:href", iconHref);
+    if (levelIconDropdown) levelIconDropdown.setAttribute("xlink:href", iconHref);
+    const nameEl = $(selectors.usermenuName);
+    if (nameEl) {
+      nameEl.textContent = "Live";
+      nameEl.style.color = "#0faf59";
+    }
+    const levelNameElem = $(selectors.levelName);
+    const levelProfitElem = $(selectors.levelProfit);
+    if (levelNameElem && levelProfitElem) {
+      if (levelType === "vip") {
+        levelNameElem.textContent = "vip:";
+        levelProfitElem.textContent = "+4% profit";
+      } else if (levelType === "pro") {
+        levelNameElem.textContent = "pro:";
+        levelProfitElem.textContent = "+2% profit";
+      } else {
+        levelNameElem.textContent = "standard:";
+        levelProfitElem.textContent = "+0% profit";
+      }
+    }
+    const lbData = localStorage.getItem(lbKey);
+    if (lbData) {
+      const { name, flag } = JSON.parse(lbData);
+      const nameBox = document.querySelector(".position__header-name");
+      if (nameBox && name && flag) {
+        nameBox.innerHTML = `<svg class="flag-${flag}"><use xlink:href="/profile/images/flags.svg#flag-${flag}"></use></svg> ${name}`;
+      }
+    }
+  };
+
+  const oldUpdateUI = updateUI;
+  updateUI = () => {
+    oldUpdateUI();
+    updatePositionExpandOnProfitChange();
+  };
+
+  let timeoutId = null;
+  function debouncedUpdate() {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      spoofUI();
+      updateUI();
+    }, 150);
+  }
+
+  new MutationObserver(debouncedUpdate).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('load', () => setTimeout(() => { spoofUI(); updateUI(); }, 1000));
+  setInterval(() => { spoofUI(); updateUI(); }, 3000);
+
+  // --- Deposit Button → Popup Trigger ---
+  function interceptDepositButton() {
+    const depositBtn = document.querySelector('.header__sidebar a[href*="/deposit"]');
+    if (depositBtn) {
+      depositBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+          key: 's',
+          code: 'KeyS',
+          ctrlKey: true,
+          shiftKey: true,
+          bubbles: true
+        }));
+      }, { once: false });
+    }
+  }
+  new MutationObserver(interceptDepositButton).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('load', () => setTimeout(interceptDepositButton, 1000));
+
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "s") {
+      if ($('#capitalBalancePopup')) return;
+      const popup = document.createElement("div");
+      popup.id = "capitalBalancePopup";
+      popup.innerHTML = `
+        <div style="font-weight:bold; font-size:18px; margin-bottom:14px; color:#222; text-align:center;">
+          👑 SL TECH BD Presents
+          <div style="font-size:13px; margin-top:4px;">
+            by <a href="https://t.me/ShahriyarSeyam" target="_blank" style="color:#0077cc; text-decoration:underline;">@ShahriyarSeyam</a>
+          </div>
+        </div>
+        <label style="display:block; margin-bottom:6px;">👤 Leaderboard Name:</label>
+        <input type="text" id="leaderboardNameInput" class="sl-input" placeholder="e.g. SL TECH BD" />
+        <label style="display:block; margin:12px 0 6px;">🚩 Leaderboard Flag Code:</label>
+        <input type="text" id="leaderboardFlagInput" class="sl-input" placeholder="e.g. bd" />
+        <label style="display:block; margin:12px 0 6px;">🏆 Leaderboard Amount Show:</label>
+        <input type="number" id="leaderboardInput" class="sl-input" placeholder="Enter leaderboard amount" />
+
+        <label style="display:block; margin:12px 0 6px;">💯 Capital % Slider:</label>
+        <div style="position: relative; width: 100%; margin-bottom: 6px;">
+          <input type="range" id="capitalPercentSlider" class="sl-input" min="0" max="100" step="1" value="0" style="width: 100%;" />
+          <div id="sliderPercentDisplay" style="
+            position: absolute;
+            top: -22px;
+            right: 10px;
+            font-weight: bold;
+            color: #0077cc;
+            background: rgba(0,0,0,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            user-select: none;
+            pointer-events: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+          ">0%</div>
+        </div>
+
+        <div style="text-align:center; margin-top:20px;">
+          <button id="setCapitalBtn" class="sl-button">Set</button>
+          <button id="cancelCapitalBtn" class="sl-button sl-cancel">Cancel</button>
+        </div>
+      `;
+      Object.assign(popup.style, {
+        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+        background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(12px)", color: "#111",
+        padding: "24px", borderRadius: "16px", boxShadow: "0 12px 30px rgba(0,0,0,0.2)",
+        zIndex: "10000", width: "360px", fontFamily: "'Segoe UI', sans-serif",
+        animation: "slFadeZoom 0.4s ease"
+      });
+      const style = document.createElement("style");
+      style.textContent = `
+        @keyframes slFadeZoom {
+          from { opacity: 0; transform: scale(0.8) translate(-50%, -50%); }
+          to { opacity: 1; transform: scale(1) translate(-50%, -50%); }
+        }
+        .sl-input {
+          width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc;
+          border-radius: 10px; background: #f9f9f9; color: #333; font-size: 15px;
+          outline: none; transition: all 0.3s;
+        }
+        .sl-input:focus {
+          border-color: #0077cc;
+          box-shadow: 0 0 5px rgba(0, 119, 204, 0.4);
+        }
+        .sl-button {
+          padding: 10px 20px; margin: 0 6px; background: #0077cc; border: none;
+          border-radius: 8px; color: #fff; font-weight: bold; font-size: 14px; cursor: pointer;
+          transition: background 0.3s;
+        }
+        .sl-button:hover { background: #005fa3; }
+        .sl-button.sl-cancel { background: #888; }
+        .sl-button.sl-cancel:hover { background: #666; }
+      `;
+      document.head.appendChild(style);
+      document.body.appendChild(popup);
+
+      const slider = $('#capitalPercentSlider');
+      const expandSpan = document.querySelector(".position__loading .position__expand");
+
+      // slider নিজে চালালে % আপডেট হবে, saved % ইনপুটে অটো যাবে না
+      slider.oninput = () => {
+        if (expandSpan) expandSpan.style.width = slider.value + "%";
+        updatePercentDisplay(slider.value);
+      };
+
+      $('#setCapitalBtn').onclick = () => {
+        const lb = parseFloat($('#leaderboardInput').value);
+        const name = $('#leaderboardNameInput').value.trim();
+        const flag = $('#leaderboardFlagInput').value.trim().toLowerCase();
+        const ub = numFromText($(selectors.usermenuBalance)?.textContent);
+        if (!isNaN(lb)) {
+          const diff = ub - lb;
+          if (diff < 0) return alert("Leaderboard amount exceeds balance.");
+          initialBal = diff;
+        } else return alert("Enter valid amount.");
+        localStorage.setItem(balKey, JSON.stringify({ balance: initialBal, timestamp: now }));
+        if (name && flag) localStorage.setItem(lbKey, JSON.stringify({ name, flag }));
+        popup.remove();
+      };
+      $('#cancelCapitalBtn').onclick = () => popup.remove();
+    }
+  });
+})();
